@@ -8,4 +8,4 @@ Installation:
 Lancement
 `npm start` ou `node server.js`
 
-IHM accessible sur `http://localhost:5000`
+IHM (vide) accessible (pour test) sur `http://localhost:5000`
