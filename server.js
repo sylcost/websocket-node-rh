@@ -1,71 +1,41 @@
-let fetch = require('node-fetch');
-var mongoose = require('mongoose');
-var express = require('express');
+const fetch = require('node-fetch');
+const mongoose = require('mongoose');
+const app = require('express')();
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
 
-var app = express();
-var expressWs = require('express-ws')(app);
+server.listen(5000, function() {
+    console.log('server up localhost:5000');
+});
 
- 
+// Front.
+app.get('/', function (req, res) {
+  res.sendFile(__dirname + '/index.html');
+});
 
-// Creation WebSocket
-app.ws('/', function(ws, req) {
-    ws.on('message', function(msg) {
-        console.log('msg:'+msg);
+
+// Creation WebSocket.
+io.on('connection', function (socket) {
+    socket.on('message', function (data) {
+        console.log('message:'+data);
     });
-
-    ws.on('close', function(msg) {
-        console.log('close:'+msg);
+    socket.on('disconnect', function(data) {
+        console.log('disconnect:'+data);
     });
 });
- 
-app.listen(5000);
 
-/**
- * Si des cients sont connectes a la WS, on appelle l'API REST,
- * on stocke le resultat dans MongoDB et on l'envoie aux clients.
- * Repete toutes les 10s.
- */
-scheduler = () => {
-
-    if (expressWs.getWss('/').clients.size > 0) {
-        fetch('https://www.bitstamp.net/api/ticker/')
-        .then(data => data.json())
-        .then(json => {
-
-            // On stocke dans MongoDB.
-            var exemple = new Reponse(json);
-            exemple.save(function (err, exemple) {
-                if (err) return console.error(err);
-            });
-
-            // On appel chaque client avec la donnee.
-            expressWs.getWss('/').clients.forEach((client) => {
-                client.send(JSON.stringify(json));
-            });
-            
-            // on relance dans 10s.
-            setTimeout(scheduler, 10000);
-        })
-        .catch(ex => {
-            console.log('erreur:'+ex);
-        });
-    } else {
-        // Pas de client connecte, on relance dans 10s.
-        setTimeout(scheduler, 10000);
-    }
-}
 
 // Connexion a MongoDB.
 mongoose.connect('mongodb://localhost:27017');
 
-var db = mongoose.connection;
+const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
     console.log('mongodb connected');
 });
 
 // Creation Schema et Model de la reponse REST.
-var schema = mongoose.Schema({
+const schema = mongoose.Schema({
     'high': String,
     'last': String,
     'timestamp': String,
@@ -76,9 +46,43 @@ var schema = mongoose.Schema({
     'ask': String,
     'open': Number
 });
-var Reponse = mongoose.model('Reponse', schema);
+const Reponse = mongoose.model('Reponse', schema);
+
+
+/**
+ * Si des cients sont connectes a la WS, on appelle l'API REST,
+ * on stocke le resultat dans MongoDB et on l'envoie aux clients.
+ * Repete toutes les 10s.
+ */
+async function scheduler() {
+
+    if (Object.keys(io.sockets.sockets).length > 0) {
+
+        try {
+            // Appel REST.
+            let data = await fetch('https://www.bitstamp.net/api/ticker/');
+            let json = await data.json();
+            
+            // On stocke dans MongoDB.
+            let reponse = new Reponse(json);
+            reponse.save(function (err, reponse) {
+                if (err) return console.error(err);
+            });
+    
+            // Broadcast.
+            io.emit('message', JSON.stringify(json));
+        } catch (err) {
+            console.log('erreur:'+err);
+        } finally {
+            // on relance dans 10s.
+            setTimeout(scheduler, 10000);
+        }
+
+    } else {
+        // Pas de client connecte, on relance dans 10s.
+        setTimeout(scheduler, 10000);
+    }
+}
 
 // Lancement du scheduler.
 scheduler();
-
-console.log('serveur express up');
