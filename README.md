@@ -1,11 +1,11 @@
 # websocket-node-rh
-exemple ws avec express-ws
+exemple ws avec socket.io
 
 
 Installation:
-`npm start`
+`npm install`
 
 Lancement
 `npm start` ou `node server.js`
 
-Le serveur se lance sur `localhost:5000`
+IHM accessible sur `http://localhost:5000`
