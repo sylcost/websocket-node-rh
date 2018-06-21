@@ -5,7 +5,7 @@ const server = require('http').Server(app);
 const io = require('socket.io')(server);
 
 server.listen(5000, function() {
-    console.log('server up localhost:5000');
+    console.log('server ok : http://localhost:5000');
 });
 
 // Front.
@@ -16,11 +16,12 @@ app.get('/', function (req, res) {
 
 // Creation WebSocket.
 io.on('connection', function (socket) {
+    console.log('connexion ws')
     socket.on('message', function (data) {
         console.log('message:'+data);
     });
     socket.on('disconnect', function(data) {
-        console.log('disconnect:'+data);
+        console.log('deconnexion ws:'+data);
     });
 });
 
@@ -29,9 +30,9 @@ io.on('connection', function (socket) {
 mongoose.connect('mongodb://localhost:27017');
 
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
+db.on('error', console.error.bind(console, 'erreur:'));
 db.once('open', function() {
-    console.log('mongodb connected');
+    console.log('connexion mongodb ok');
 });
 
 // Creation Schema et Model de la reponse REST.
@@ -47,7 +48,6 @@ const schema = mongoose.Schema({
     'open': Number
 });
 const Reponse = mongoose.model('Reponse', schema);
-
 
 /**
  * Si des cients sont connectes a la WS, on appelle l'API REST,
@@ -72,7 +72,7 @@ async function scheduler() {
             // Broadcast.
             io.emit('message', JSON.stringify(json));
         } catch (err) {
-            console.log('erreur:'+err);
+            console.log('erreur scheduler:'+err);
         } finally {
             // on relance dans 10s.
             setTimeout(scheduler, 10000);
