@@ -57,7 +57,6 @@ const Reponse = mongoose.model('Reponse', schema);
  * Repete toutes les 10s.
  */
 const scheduler = async () => {
-    console.log('job');
     if (Object.keys(io.sockets.sockets).length > 0) {
         try {
             // Appel REST.
