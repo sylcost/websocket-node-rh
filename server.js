@@ -3,25 +3,27 @@ const mongoose = require('mongoose');
 const app = require('express')();
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
+var cron = require('node-cron');
 
-server.listen(5000, function() {
+
+server.listen(5000, () => {
     console.log('server ok : http://localhost:5000');
 });
 
 // Front.
-app.get('/', function (req, res) {
+app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
 
 // Creation WebSocket.
-io.on('connection', function (socket) {
+io.on('connection', (socket) => {
     console.log('connexion ws')
-    socket.on('message', function (data) {
-        console.log('message:'+data);
+    socket.on('message', (data) => {
+        console.log(`message: ${data}`);
     });
-    socket.on('disconnect', function(data) {
-        console.log('deconnexion ws:'+data);
+    socket.on('disconnect', (data) => {
+        console.log(`deconnexion ws: ${data}`);
     });
 });
 
@@ -31,7 +33,7 @@ mongoose.connect('mongodb://localhost:27017');
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'erreur:'));
-db.once('open', function() {
+db.once('open', () => {
     console.log('connexion mongodb ok');
 });
 
@@ -54,35 +56,27 @@ const Reponse = mongoose.model('Reponse', schema);
  * on stocke le resultat dans MongoDB et on l'envoie aux clients.
  * Repete toutes les 10s.
  */
-async function scheduler() {
-
+const scheduler = async () => {
+    console.log('job');
     if (Object.keys(io.sockets.sockets).length > 0) {
-
         try {
             // Appel REST.
-            let data = await fetch('https://www.bitstamp.net/api/ticker/');
-            let json = await data.json();
+            const data = await fetch('https://www.bitstamp.net/api/ticker/');
+            const json = await data.json();
             
             // On stocke dans MongoDB.
-            let reponse = new Reponse(json);
-            reponse.save(function (err, reponse) {
+            const reponse = new Reponse(json);
+            reponse.save((err, reponse) => {
                 if (err) return console.error(err);
             });
     
             // Broadcast.
             io.emit('message', JSON.stringify(json));
         } catch (err) {
-            console.log('erreur scheduler:'+err);
-        } finally {
-            // on relance dans 10s.
-            setTimeout(scheduler, 10000);
+            console.log(`erreur scheduler: ${err}`);
         }
-
-    } else {
-        // Pas de client connecte, on relance dans 10s.
-        setTimeout(scheduler, 10000);
-    }
+    } 
 }
 
-// Lancement du scheduler.
-scheduler();
+// Lancement du Job toutes les 10s.
+cron.schedule('*/10 * * * * *', scheduler);

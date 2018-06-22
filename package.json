@@ -6,6 +6,7 @@
   "dependencies": {
     "express": "^4.16.3",
     "mongoose": "^5.1.6",
+    "node-cron": "^1.2.1",
     "node-fetch": "^2.1.2",
     "socket.io": "^2.1.1"
   },
