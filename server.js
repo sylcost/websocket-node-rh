@@ -4,15 +4,20 @@ const app = require('express')();
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
 const cron = require('node-cron');
+const CONFIG = require('./config.json');
 
+const dbPort = CONFIG.dbPort;
+const dbHost = CONFIG.dbHost;
+const restUrl = CONFIG.restUrl;
+const localPort = CONFIG.localPort;
 
-server.listen(5000, () => {
-    console.log('server ok : http://localhost:5000');
+server.listen(localPort, () => {
+    console.log(`server ok : http://localhost:${localPort}`);
 });
 
 // Front.
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(__dirname + '/front/index.html');
 });
 
 
@@ -29,7 +34,7 @@ io.on('connection', (socket) => {
 
 
 // Connexion a MongoDB.
-mongoose.connect('mongodb://localhost:27017');
+mongoose.connect(`mongodb://${dbHost}:${dbPort}`);
 
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'erreur:'));
@@ -60,7 +65,7 @@ const scheduler = async () => {
     if (Object.keys(io.sockets.sockets).length > 0) {
         try {
             // Appel REST.
-            const data = await fetch('https://www.bitstamp.net/api/ticker/');
+            const data = await fetch(restUrl);
             const json = await data.json();
             
             // On stocke dans MongoDB.

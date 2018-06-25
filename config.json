@@ -1,0 +1,6 @@
+{
+    "dbPort": 27017,
+    "dbHost": "localhost",
+    "restUrl": "https://www.bitstamp.net/api/ticker/",
+    "localPort": "5000"
+}
